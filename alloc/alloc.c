@@ -2,15 +2,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-/*	
- при помощи функции syscall реализовать аллокатор памяти. 
-	
-*/
 
-
-// список сначала и с конца
-void *memory_list_head = NULL;
 void *memory_list_tail = NULL;
+
+
+
 struct CMemoryBlockInfo {
 	size_t size;
 	int is_free;
@@ -19,30 +15,42 @@ struct CMemoryBlockInfo {
 
 #define Block struct CMemoryBlockInfo
 #define MEMORY_BLOCK_INFO_SIZE sizeof(Block)
+
+
 #define BRK_FAILED -1
+
 Block *get_block_pointer(void *ptr) {
 	return (Block *)ptr - 1;
 }
+
+
 Block *find_free_block(size_t size) {
 	if (size <= 0) {
 		return NULL;
 	}
+
 	Block *current = memory_list_head;
 	while (current && !(current->is_free && current->size >= size)) {
 		current = current->next;
 	}
+
 	return current;
 }
+
+
 Block *memory_request(size_t size) {
 	if (size <= 0) {
 		return NULL;
 	}
+
 	Block *new_block = NULL;
 	new_block = sbrk(0);
+
 	int request = brk(new_block + MEMORY_BLOCK_INFO_SIZE + size);
 	if (request == BRK_FAILED) {
 		return NULL;
 	}
+
 	if (memory_list_tail) {
 		((Block *)memory_list_tail)->next = new_block;
 		memory_list_tail = new_block;
@@ -51,6 +59,7 @@ Block *memory_request(size_t size) {
 	new_block->size = size;
 	new_block->next = NULL;
 	new_block->is_free = 0;
+
 	return new_block;
 }
 
@@ -64,38 +73,46 @@ void *malloc(size_t sizemem) {
 	if (!memory_list_head) {
 		block = memory_request(sizemem);
 		if (!block) {
-		return NULL;
-		}
-
-	memory_list_head = block;
-	memory_list_tail = block;
-} else {
-	block = find_free_block(sizemem);
-	if (!block) {
-		block = memory_request(sizemem);
-		if (!block) {
 			return NULL;
 		}
-		} else
-    {
-		block->is_free = 0;
+
+		memory_list_head = block;
+		memory_list_tail = block;
+	} else {
+		block = find_free_block(sizemem);
+		if (!block) {
+			block = memory_request(sizemem);
+			if (!block) {
+				return NULL;
+			}
+		} else {
+			block->is_free = 0;
 		}
 	}
+
 	return (block + 1);
+}
+
+
 void free(void *ptr) {
 	if (!ptr) {
 		return;	
 	}
+
 	Block *block_ptr = get_block_pointer(ptr);
 	block_ptr->is_free = 1;
 }
+
+
 void *realloc(void *ptr, size_t size) {
 	if (size <= 0) {
 		return NULL;
 	}
+
 	if (!ptr) {
 		return malloc(size);
 	}
+
 	Block *block_ptr = get_block_pointer(ptr);
 	if (block_ptr->size >= size) {
 		return ptr;
