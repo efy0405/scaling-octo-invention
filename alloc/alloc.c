@@ -2,7 +2,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-
+void *memory_list_head = NULL;
 void *memory_list_tail = NULL;
 
 
